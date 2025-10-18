@@ -1,6 +1,32 @@
 import { api } from '../api/client';
 
 class UserService {
+  async updateRole(username: string, newRole: string, adminName: string) {
+    const response = await api.post('/updateRole', {
+      username: username,
+      newRole: newRole,
+      adminName: adminName
+    });
+    return response.data;
+  }
+
+  async banUser(username: string, adminName: string) {
+    const response = await api.post('/banUser', {
+      username: username,
+      adminName: adminName
+    });
+    return response.data;
+  }
+
+  async unbanUser(username: string, adminName: string) {
+    const response = await api.post('/unbanUser', {
+      username: username,
+      adminName: adminName
+    });
+    return response.data;
+  }
+
+
   async getAllUsersExceptNormal() {
       const response = await api.get('/getAllUsersExceptNormal');
       return response.data;
