@@ -2,589 +2,442 @@
 import { useEffect, useState } from "react"
 import UserService from "../../services/userService"
 
-interface User {
-  username: string;
-  role: string;
-  biBan: boolean;
-}
-
-interface FindUserResponse {
+interface WithdrawRequest {
   id: number;
-  username: string;
-  biBan: boolean;
-  role: string;
-  vang: number;
-  ngoc: number;
-  vangNapTuWeb: number;
-  ngocNapTuWeb: number;
-  sucManh: number;
-  x: number;
-  y: number;
-  mapHienTai: string;
-  daVaoTaiKhoanLanDau: boolean;
-  coDeTu: boolean;
-  deTu: any;                  
-  items: any[];              
-  danhSachVatPhamWeb: number[];
+  user_id: number;
+  amount: number;
+  bank_name: string;
+  bank_number: string;
+  bank_owner: string;
+  status: string;
+  request_at: string;
+  success_at: string | null;
 }
 
 export default function Admin() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [findUser, setFindUser] = useState<FindUserResponse | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showUpdateRoleModal, setShowUpdateRoleModal] = useState(false);
-  const [showBanModal, setShowBanModal] = useState(false);
-  const [showUnbanModal, setShowUnbanModal] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [withdrawRequests, setWithdrawRequests] = useState<WithdrawRequest[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [fieldPage, setFieldPage] = useState(1); 
-  const [userPage, setUserPage] = useState(1); 
-  const [updateRoleInput, setUpdateRoleInput] = useState("");
-  const [banUsername, setBanUsername] = useState("");
-  const [unbanUsername, setUnbanUsername] = useState("");
-  const [adminName, setAdminName] = useState("");
-
-  const fieldsPerPage = 4;
-  const usersPerPage = 10;
-
-  const refetchUsers = async () => {
-  const response = await UserService.getAllUsersExceptNormal(); 
-    setUsers(response);
-  };
+  const [processingId, setProcessingId] = useState<number | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const response = await UserService.getAllUsersExceptNormal(); 
-      console.log("API response:", response);
-      setUsers(response); 
-    };
-    fetchData();
-
-    // Lấy admin name từ localStorage
-    const currentUser = localStorage.getItem('currentUser');
-    if (currentUser) {
-      const userData = JSON.parse(currentUser);
-      setAdminName(userData.username);
-    }
+    fetchWithdrawRequests();
   }, []);
 
-  const handleSearchUser = async () => {
-    if (!searchInput.trim()) {
-      setError("Vui lòng nhập username");
-      return;
-    }
-
+  const fetchWithdrawRequests = async () => {
+  try {
     setLoading(true);
     setError("");
-    try {
-      const response = await UserService.findUsername(searchInput);
-      setFindUser(response);
-      setFieldPage(1); 
-    } catch (err) {
-      setError("Không tìm thấy người dùng");
-      setFindUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSearchInput("");
-    setFindUser(null);
-    setError("");
-  };
-
-  const handleUpdateRole = async () => {
-    if (!banUsername.trim()) {
-      setError("Vui lòng nhập username");
-      return;
-    }
-    if (!updateRoleInput.trim()) {
-      setError("Vui lòng chọn role");
+    const stored = localStorage.getItem("currentUser");
+    if (!stored) {
+      setError("Không tìm thấy thông tin đăng nhập");
       return;
     }
 
-    setLoading(true);
-    setError("");
-    try {
-      await UserService.updateRole(banUsername, updateRoleInput, adminName);
-      setSuccess("Cập nhật role thành công!");
-      await refetchUsers();
-      setTimeout(() => {
-        setShowUpdateRoleModal(false);
-        setBanUsername("");
-        setUpdateRoleInput("");
-        setSuccess("");
-      }, 2000);
-    } catch (err) {
-      setError("Cập nhật role thất bại");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBanUser = async () => {
-    if (!banUsername.trim()) {
-      setError("Vui lòng nhập username");
+    const userData = JSON.parse(stored);
+    const accessToken = userData.access_token;
+    if (!accessToken) {
+      setError("Không tìm thấy token đăng nhập");
       return;
     }
 
-    setLoading(true);
-    setError("");
-    try {
-      await UserService.banUser(banUsername, adminName);
-      setSuccess("Ban user thành công!");
-      await refetchUsers();
-      setTimeout(() => {
-        setShowBanModal(false);
-        setBanUsername("");
-        setSuccess("");
-      }, 2000);
-    } catch (err) {
-      setError("Ban user thất bại");
-    } finally {
-      setLoading(false);
+    const result = await UserService.allWithdrawl(accessToken);
+    
+    console.log("📝 Result:", result); // Debug để xem structure
+    
+    if (result.success) {
+      // Kiểm tra xem data có withdraws hay data chính là array
+      if (result.data.withdraws) {
+        setWithdrawRequests(result.data.withdraws || []);
+      } else if (Array.isArray(result.data)) {
+        setWithdrawRequests(result.data || []);
+      } else {
+        setWithdrawRequests([]);
+      }
+    } else {
+      setError(result.error || "Lỗi khi tải danh sách");
     }
-  };
+  } catch (err) {
+    console.error("❌ Error:", err);
+    setError("Lỗi không xác định");
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const handleUnbanUser = async () => {
-    if (!unbanUsername.trim()) {
-      setError("Vui lòng nhập username");
+  const handleApprove = async (id: number) => {  // ← Bỏ tham số finance_id
+  if (!confirm("Bạn có chắc chắn muốn duyệt yêu cầu này?")) return;
+
+  try {
+    setProcessingId(id);
+    const stored = localStorage.getItem('currentUser');
+    if (!stored) {
+      alert("Không tìm thấy thông tin đăng nhập");
+      return;
+    }
+    
+    const userData = JSON.parse(stored);
+    const accessToken = userData.access_token;
+    const authId = userData.auth_id;  // ← LẤY auth_id từ localStorage
+    
+    if (!accessToken || !authId) {
+      alert("Không tìm thấy thông tin đăng nhập");
       return;
     }
 
-    setLoading(true);
-    setError("");
-    try {
-      await UserService.unbanUser(unbanUsername, adminName);
-      setSuccess("Unban user thành công!");
-      await refetchUsers();
-      setTimeout(() => {
-        setShowUnbanModal(false);
-        setUnbanUsername("");
-        setSuccess("");
-      }, 2000);
-    } catch (err) {
-      setError("Unban user thất bại");
-    } finally {
-      setLoading(false);
+    const result = await UserService.approveWithdraw(id, authId, accessToken);  // ← Truyền authId
+    
+    if (result.success) {
+      alert(result.message);
+      fetchWithdrawRequests();
+    } else {
+      alert(result.error || "Lỗi khi duyệt yêu cầu");
+    }
+  } catch (err) {
+    console.error("❌ Approve error:", err);
+    alert("Lỗi không xác định");
+  } finally {
+    setProcessingId(null);
+  }
+};
+
+const handleReject = async (id: number) => {  // ← Bỏ tham số finance_id
+  if (!confirm("Bạn có chắc chắn muốn từ chối yêu cầu này?")) return;
+
+  try {
+    setProcessingId(id);
+    const stored = localStorage.getItem('currentUser');
+    if (!stored) {
+      alert("Không tìm thấy thông tin đăng nhập");
+      return;
+    }
+    
+    const userData = JSON.parse(stored);
+    const accessToken = userData.access_token;
+    const authId = userData.auth_id;  // ← LẤY auth_id từ localStorage
+    
+    if (!accessToken || !authId) {
+      alert("Không tìm thấy thông tin đăng nhập");
+      return;
+    }
+
+    const result = await UserService.rejectWithdraw(id, authId, accessToken);  // ← Truyền authId
+    
+    if (result.success) {
+      alert(result.message);
+      fetchWithdrawRequests();
+    } else {
+      alert(result.error || "Lỗi khi từ chối yêu cầu");
+    }
+  } catch (err) {
+    console.error("❌ Reject error:", err);
+    alert("Lỗi không xác định");
+  } finally {
+    setProcessingId(null);
+  }
+};
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return (
+          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+            Chờ duyệt
+          </span>
+        );
+      case "SUCCESS":
+        return (
+          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-200">
+            Đã duyệt
+          </span>
+        );
+      case "REJECTED":
+      case "ERROR":
+        return (
+          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 border border-red-200">
+            Đã từ chối
+          </span>
+        );
+      default:
+        return (
+          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200">
+            {status}
+          </span>
+        );
     }
   };
 
-  const userInfoFields = findUser ? [
-    { label: 'ID', value: findUser.id },
-    { label: 'Username', value: findUser.username },
-    { label: 'Contact', value: `${findUser.username}@gmail.com` },
-    { label: 'Name', value: findUser.username },
-    { label: 'Status', value: findUser.biBan ? 'Bị ban' : 'Active', color: findUser.biBan ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' },
-    { label: 'Role', value: findUser.role, color: 'bg-blue-100 text-blue-800' },
-    { label: 'Vàng', value: findUser.vang },
-    { label: 'Ngọc', value: findUser.ngoc },
-    { label: 'Vàng nạp từ web', value: findUser.vangNapTuWeb },
-    { label: 'Ngọc nạp từ web', value: findUser.ngocNapTuWeb },
-    { label: 'Sức mạnh', value: findUser.sucManh },
-    { label: 'Map hiện tại', value: findUser.mapHienTai },
-  ] : [];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải danh sách...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const indexOfLastField = fieldPage * fieldsPerPage;
-  const indexOfFirstField = indexOfLastField - fieldsPerPage;
-  const currentFields = userInfoFields.slice(indexOfFirstField, indexOfLastField);
-  const totalFieldPages = Math.ceil(userInfoFields.length / fieldsPerPage);
-
-  const indexOfLastUser = userPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
-  const totalUserPages = Math.ceil(users.length / usersPerPage);
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-2xl w-full">
+          <div className="text-red-500 text-center">
+            <svg
+              className="w-16 h-16 mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h2 className="text-2xl font-bold mb-2">Lỗi</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={() => fetchWithdrawRequests()}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded mt-4"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Chào mừng đến với trang quản trị</p>
-      </div>
-
-      <div className="flex gap-4">
-          <button 
-            onClick={() => setShowModal(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-          >
-            Find user
-          </button>
-
-          <button 
-            onClick={() => setShowUpdateRoleModal(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-          >
-            updateRole
-          </button>
-
-          <button 
-            onClick={() => setShowBanModal(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-          >
-            ban
-          </button>
-
-          <button 
-            onClick={() => setShowUnbanModal(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-          >
-            unban
-          </button>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-800">Danh sách quản trị viên</h2>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {currentUsers.map((user) => (
-                <tr key={user.username} className="hover:bg-gray-50 transition">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className="text-2xl mr-3">👤</span>
-                      <span className="text-sm font-medium text-gray-900">{user.username}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900">{user.role}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      !user.biBan ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {!user.biBan ? 'Hoạt động' : 'Bị ban'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {totalUserPages > 1 && (
-        <div className="flex justify-between items-center mt-6">
-          <button
-            onClick={() => setUserPage((p) => Math.max(p - 1, 1))}
-            disabled={userPage === 1}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300"
-          >
-            ← Trước
-          </button>
-
-          <span className="text-gray-700 font-medium">
-            Trang {userPage} / {totalUserPages}
-          </span>
-
-          <button
-            onClick={() => setUserPage((p) => Math.min(p + 1, totalUserPages))}
-            disabled={userPage === totalUserPages}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300"
-          >
-            Sau →
-          </button>
-        </div>
-      )}
-
-      {/* Find User Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">Find User</h2>
-              </div>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600 text-xl"
-              >
-                ✕
-              </button>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">Quản lý rút tiền</h1>
+              <p className="text-gray-600 mt-1">Danh sách các yêu cầu rút tiền từ người dùng</p>
             </div>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearchUser()}
-                placeholder="Nhập username"
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black outline-none"
-              />
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
             <button
-              onClick={handleSearchUser}
-              disabled={loading}
-              className="w-full bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition disabled:bg-gray-400 mb-6 font-medium"
+              onClick={fetchWithdrawRequests}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
             >
-              {loading ? 'Đang tìm kiếm...' : 'Search'}
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Làm mới
             </button>
+          </div>
+        </div>
 
-            {findUser && (
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-4">User Information</h3>
+                <p className="text-yellow-700 text-sm font-medium">Chờ duyệt</p>
+                <p className="text-3xl font-bold text-yellow-800 mt-1">
+                  {withdrawRequests.filter(w => w.status === "PENDING").length}
+                </p>
+              </div>
+              <svg className="w-12 h-12 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {currentFields.map((item, idx) => (
-                    <div key={idx}>
-                      <p className="text-xs font-medium text-gray-600 mb-2">{item.label}</p>
-                      {item.color ? (
-                        <div className={`px-3 py-2 rounded text-center text-sm font-semibold ${item.color}`}>
-                          {item.value}
+          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-700 text-sm font-medium">Đã duyệt</p>
+                <p className="text-3xl font-bold text-green-800 mt-1">
+                  {withdrawRequests.filter(w => w.status === "SUCCESS").length}
+                </p>
+              </div>
+              <svg className="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+
+          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-red-700 text-sm font-medium">Đã từ chối</p>
+                <p className="text-3xl font-bold text-red-800 mt-1">
+                  {withdrawRequests.filter(w => w.status === "REJECTED" || w.status === "ERROR").length}
+                </p>
+              </div>
+              <svg className="w-12 h-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Withdraw Requests Table */}
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Danh sách yêu cầu rút tiền
+            </h2>
+          </div>
+
+          {withdrawRequests.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+              <p className="text-lg">Chưa có yêu cầu rút tiền nào</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      User ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Số tiền
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ngân hàng
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Số TK
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Chủ TK
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Trạng thái
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Thời gian
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Thao tác
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {withdrawRequests.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50 transition">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        #{item.id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        #{item.user_id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600">
+                        {formatCurrency(item.amount)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.bank_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                        {item.bank_number}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.bank_owner}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {getStatusBadge(item.status)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex flex-col">
+                          <span className="text-xs text-gray-400">Yêu cầu:</span>
+                          <span>{formatDate(item.request_at)}</span>
+                          {item.status === "SUCCESS" && item.success_at && (
+                            <>
+                              <span className="text-xs text-gray-400 mt-1">Thành công:</span>
+                              <span className="text-green-600">{formatDate(item.success_at)}</span>
+                            </>
+                          )}
                         </div>
-                      ) : (
-                        <div className="border border-gray-300 rounded-lg p-3">
-                          <p className="text-gray-800 font-medium text-sm">{item.value}</p>
-                        </div>
-                      )}
-                    </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                        {item.status === "PENDING" ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleApprove(item.id)}
+                              disabled={processingId === item.id}
+                              className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs font-medium transition flex items-center gap-1"
+                            >
+                              {processingId === item.id ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                              Duyệt
+                            </button>
+                            <button
+                              onClick={() => handleReject(item.id)}
+                              disabled={processingId === item.id}
+                              className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs font-medium transition flex items-center gap-1"
+                            >
+                              {processingId === item.id ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              )}
+                              Từ chối
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Đã xử lý</span>
+                        )}
+                      </td>
+                    </tr>
                   ))}
-                </div>
-
-                {totalFieldPages > 1 && (
-                  <div className="flex justify-between items-center mt-6">
-                    <button
-                      onClick={() => setFieldPage((p) => Math.max(p - 1, 1))}
-                      disabled={fieldPage === 1}
-                      className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300"
-                    >
-                      ← Trước
-                    </button>
-
-                    <span className="text-gray-700 font-medium">
-                      Trang {fieldPage} / {totalFieldPages}
-                    </span>
-
-                    <button
-                      onClick={() => setFieldPage((p) => Math.min(p + 1, totalFieldPages))}
-                      disabled={fieldPage === totalFieldPages}
-                      className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300"
-                    >
-                      Sau →
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!findUser && (
-              <button
-                onClick={handleCloseModal}
-                className="w-full mt-4 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
-              >
-                Close
-              </button>
-            )}
-          </div>
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Update Role Modal */}
-      {showUpdateRoleModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-start mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Update Role</h2>
-              <button
-                onClick={() => {
-                  setShowUpdateRoleModal(false);
-                  setBanUsername("");
-                  setUpdateRoleInput("");
-                  setError("");
-                  setSuccess("");
-                }}
-                className="text-gray-400 hover:text-gray-600 text-xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg text-sm">
-                {success}
-              </div>
-            )}
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={banUsername}
-                onChange={(e) => setBanUsername(e.target.value)}
-                placeholder="Nhập username"
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black outline-none"
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Role mới <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={updateRoleInput}
-                onChange={(e) => setUpdateRoleInput(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black outline-none"
-              >
-                <option value="">Chọn role</option>
-                <option value="ADMIN">ADMIN</option>
-                <option value="MODERATOR">MODERATOR</option>
-                <option value="USER">USER</option>
-              </select>
-            </div>
-
-            <button
-              onClick={handleUpdateRole}
-              disabled={loading}
-              className="w-full bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition disabled:bg-gray-400 font-medium"
-            >
-              {loading ? 'Đang cập nhật...' : 'Update'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Ban User Modal */}
-      {showBanModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-start mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Ban </h2>
-              <button
-                onClick={() => {
-                  setShowBanModal(false);
-                  setBanUsername("");
-                  setError("");
-                  setSuccess("");
-                }}
-                className="text-gray-400 hover:text-gray-600 text-xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg text-sm">
-                {success}
-              </div>
-            )}
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={banUsername}
-                onChange={(e) => setBanUsername(e.target.value)}
-                placeholder="Nhập username"
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black outline-none"
-              />
-            </div>
-
-            <button
-              onClick={handleBanUser}
-              disabled={loading}
-              className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:bg-gray-400 font-medium"
-            >
-              {loading ? 'Đang ban...' : 'Ban '}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Unban User Modal */}
-      {showUnbanModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-start mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Unban</h2>
-              <button
-                onClick={() => {
-                  setShowUnbanModal(false);
-                  setUnbanUsername("");
-                  setError("");
-                  setSuccess("");
-                }}
-                className="text-gray-400 hover:text-gray-600 text-xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg text-sm">
-                {success}
-              </div>
-            )}
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={unbanUsername}
-                onChange={(e) => setUnbanUsername(e.target.value)}
-                placeholder="Nhập username"
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black outline-none"
-              />
-            </div>
-
-            <button
-              onClick={handleUnbanUser}
-              disabled={loading}
-              className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 font-medium"
-            >
-              {loading ? 'Đang unban...' : 'Unban'}
-            </button>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
-  )
+  );
 }

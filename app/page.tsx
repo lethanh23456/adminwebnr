@@ -13,12 +13,6 @@ interface FormErrors {
   password?: string;
 }
 
-interface UserData {
-  role: string;
-  username: string;
-  [key: string]: any;
-}
-
 function Home() {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
@@ -50,37 +44,35 @@ function Home() {
     setLoading(true);
     try {
       const result = await UserService.login(formData.username, formData.password);
+      
       if (result.success) {
-        const userData: UserData = {
-          ...result.data,
+        console.log("✅ Login success:", result.data);
+
+        // Lưu sessionId và username vào localStorage
+        const sessionData = {
+          sessionId: result.data.sessionId,
           username: formData.username
         };
 
-        // Kiểm tra role trước khi cho phép đăng nhập
-        if (userData.role !== 'ADMIN') {
-          alert('Bạn không có quyền truy cập! Chỉ ADMIN mới có thể đăng nhập.');
-          setLoading(false);
-          return;
-        }
+        localStorage.setItem('currentUser', JSON.stringify(sessionData));
+        console.log("💾 Saved session data:", sessionData);
 
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        const saved = localStorage.getItem('currentUser');
-        console.log("Saved user:", saved);
-
+        // Ghi nhớ username nếu checkbox được chọn
         if (rememberMe) {
           localStorage.setItem('rememberedUsername', formData.username);
         } else {
           localStorage.removeItem('rememberedUsername');
         }
 
-        alert(result.message || 'Đăng nhập thành công!');
+        alert(result.message || 'Đăng nhập thành công! Vui lòng nhập OTP.');
         
-        router.push('/admin');
+        // Chuyển sang trang OTP
+        router.push('/otp');
       } else {
-        alert(result.error);
+        alert(result.error || 'Đăng nhập thất bại!');
       }
     } catch (error) {
-      console.error('Unexpected error:', error);
+      console.error('❌ Unexpected error:', error);
       alert('Đã xảy ra lỗi không mong đợi!');
     } finally {
       setLoading(false);
@@ -174,7 +166,7 @@ function Home() {
             </button>
           </div>
 
-        
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -195,8 +187,12 @@ function Home() {
               </span>
             )}
           </button>
-        </form>
 
+          {/* Info Note */}
+          <div className="text-center text-sm text-gray-500">
+            Sau khi đăng nhập, bạn sẽ cần nhập mã OTP
+          </div>
+        </form>
       </div>
     </div>
   );

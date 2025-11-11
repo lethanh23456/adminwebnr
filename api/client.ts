@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api/auth';
+const API_BASE_URL = 'http://localhost:3000';
 
 export const api = {
   get: async <T = any>(
@@ -62,18 +62,20 @@ export const api = {
 
  
   patch: async <T = any>(
-    url: string, 
-    data: any = {}, 
+    url: string,
+    data?: any,
     config: AxiosRequestConfig = {}
   ): Promise<AxiosResponse<T>> => {
+    
     return await axios.patch<T>(`${API_BASE_URL}${url}`, data, {
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        ...config.headers,
       },
-      ...config
+      ...config,
     });
-  }
+  },
 };
 
 export { API_BASE_URL };
