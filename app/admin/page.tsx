@@ -65,7 +65,7 @@ export default function Admin() {
   }
 };
 
-  const handleApprove = async (id: number) => {  // ← Bỏ tham số finance_id
+  const handleApprove = async (id: number) => {  
   if (!confirm("Bạn có chắc chắn muốn duyệt yêu cầu này?")) return;
 
   try {
@@ -78,7 +78,7 @@ export default function Admin() {
     
     const userData = JSON.parse(stored);
     const accessToken = userData.access_token;
-    const authId = userData.auth_id;  // ← LẤY auth_id từ localStorage
+    const authId = userData.auth_id;  
     
     if (!accessToken || !authId) {
       alert("Không tìm thấy thông tin đăng nhập");
