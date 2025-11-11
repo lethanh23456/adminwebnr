@@ -1,6 +1,6 @@
 import { api } from '../api/client';
 
-class UserService {
+class AdminService {
   async allWithdrawl(token: string) {
     try {
       const response = await api.get(
@@ -186,4 +186,4 @@ class UserService {
   }
 }
 
-export default new UserService();
+export default new AdminService();

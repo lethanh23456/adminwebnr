@@ -1,4 +1,3 @@
-// app/admin/layout.tsx
 "use client"
 
 import { useState } from "react"
@@ -7,7 +6,7 @@ import { usePathname } from "next/navigation"
 
 const sidebarItems = [
   { href: "/admin", label: "Dashboard", icon: "📊" },
-  { href: "/admin/games", label: "Quản lý Game", icon: "🎮" },
+  { href: "/admin/post", label: "Quản lý Tin tức", icon: "🎮" },
   { href: "/admin/users", label: "Người dùng", icon: "👥" },
   { href: "/admin/stats", label: "Thống kê", icon: "📈" },
   { href: "/admin/settings", label: "Cài đặt", icon: "⚙️" },
@@ -19,10 +18,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header */}
       <header className="bg-[#FFC000] shadow-lg sticky top-0 z-50">
         <div className="flex items-center justify-between h-20 px-4">
-          {/* Menu button cho mobile */}
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="lg:hidden text-white p-2 hover:bg-yellow-400 rounded-lg transition"
@@ -36,13 +33,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </svg>
           </button>
 
-          {/* Logo/Title */}
+    
           <div className="flex items-center gap-3">
             <span className="text-2xl">🎮</span>
             <h1 className="text-xl font-bold text-white">Admin Panel</h1>
           </div>
 
-          {/* User menu */}
           <div className="flex items-center gap-4">
             <button className="text-white hover:bg-yellow-400 p-2 rounded-lg transition">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +53,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </header>
 
       <div className="flex">
-        {/* Sidebar */}
         <aside 
           className={`
             fixed lg:static inset-y-0 left-0 z-40
@@ -89,10 +84,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               ))}
             </nav>
 
-            {/* Divider */}
+         
             <div className="my-6 border-t border-gray-200"></div>
 
-            {/* Additional links */}
+         
             <div className="space-y-2">
               <Link
                 href="/admin/help"
@@ -112,7 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </aside>
 
-        {/* Overlay cho mobile */}
+     
         {isSidebarOpen && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
@@ -120,7 +115,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ></div>
         )}
 
-        {/* Main Content */}
         <main className="flex-1 p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {children}

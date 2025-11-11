@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import UserService from '../../services/userService';
+import AdminService from '../../services/adminService';
 
 interface FormData {
   otp: string;
@@ -38,7 +38,7 @@ function Otp() {
       }
 
 
-      const result = await UserService.verifyOtp(formData.otp, sessionId);
+      const result = await AdminService.verifyOtp(formData.otp, sessionId);
 
       if (result.success) {
         console.log("✅ Verify OTP success:", result.data);
@@ -54,9 +54,9 @@ function Otp() {
 
      
         localStorage.setItem('currentUser', JSON.stringify(userData));
-        console.log("💾 Saved user data:", userData);
+        console.log("Saved user data:", userData);
 
-        alert("✅ Xác thực OTP thành công!");
+        alert("Xác thực OTP thành công!");
         
       
         router.push("/admin");

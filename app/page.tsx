@@ -1,6 +1,6 @@
 "use client"
 import React, { useState } from 'react';
-import UserService from '../services/userService';
+import AdminService from '../services/adminService';
 import { useRouter } from 'next/navigation'
 
 interface FormData {
@@ -43,7 +43,7 @@ function Home() {
 
     setLoading(true);
     try {
-      const result = await UserService.login(formData.username, formData.password);
+      const result = await AdminService.login(formData.username, formData.password);
       
       if (result.success) {
         console.log("✅ Login success:", result.data);

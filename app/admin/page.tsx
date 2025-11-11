@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import UserService from "../../services/userService"
+import AdminService from "../../services/adminService"
 
 interface WithdrawRequest {
   id: number;
@@ -42,12 +42,11 @@ export default function Admin() {
       return;
     }
 
-    const result = await UserService.allWithdrawl(accessToken);
+    const result = await AdminService.allWithdrawl(accessToken);
     
     console.log("📝 Result:", result); // Debug để xem structure
     
     if (result.success) {
-      // Kiểm tra xem data có withdraws hay data chính là array
       if (result.data.withdraws) {
         setWithdrawRequests(result.data.withdraws || []);
       } else if (Array.isArray(result.data)) {
@@ -86,7 +85,7 @@ export default function Admin() {
       return;
     }
 
-    const result = await UserService.approveWithdraw(id, authId, accessToken);  // ← Truyền authId
+    const result = await AdminService.approveWithdraw(id, authId, accessToken);  // ← Truyền authId
     
     if (result.success) {
       alert(result.message);
@@ -122,7 +121,7 @@ const handleReject = async (id: number) => {  // ← Bỏ tham số finance_id
       return;
     }
 
-    const result = await UserService.rejectWithdraw(id, authId, accessToken);  // ← Truyền authId
+    const result = await AdminService.rejectWithdraw(id, authId, accessToken);  // ← Truyền authId
     
     if (result.success) {
       alert(result.message);
