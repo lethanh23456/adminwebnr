@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation"
 const sidebarItems = [
   { href: "/admin", label: "Dashboard", icon: "📊" },
   { href: "/admin/post", label: "Quản lý Tin tức", icon: "🎮" },
-  { href: "/admin/users", label: "Người dùng", icon: "👥" },
+  { href: "/admin/acc", label: "Quản lý tài khoản", icon: "👥" },
   { href: "/admin/stats", label: "Thống kê", icon: "📈" },
   { href: "/admin/settings", label: "Cài đặt", icon: "⚙️" },
 ]

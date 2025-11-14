@@ -1,6 +1,7 @@
 import { api } from '../api/client';
 
 class AdminService {
+  // Lấy danh sách tất cả các yêu cầu rút tiền
   async allWithdrawl(token: string) {
     try {
       const response = await api.get(
@@ -39,7 +40,7 @@ class AdminService {
     }
   }
 
-  // API Approve Withdraw
+  // Duyệt yêu cầu rút tiền
   async approveWithdraw(id: number, finance_id: number, token: string) {
     try {
       const response = await api.patch(
@@ -84,7 +85,7 @@ class AdminService {
     }
   }
 
-  // API Reject Withdraw
+  // tu choi yêu cầu rút tiền
   async rejectWithdraw(id: number, finance_id: number, token: string) {
     try {
       const response = await api.patch(
@@ -128,7 +129,7 @@ class AdminService {
       };
     }
   }
-
+  // Xác thực OTP
   async verifyOtp(otp: string, sessionId: string) {
     try {
       const response = await api.post('/auth/verify-otp', {
@@ -184,6 +185,8 @@ class AdminService {
       };
     }
   }
+
+
 }
 
 export default new AdminService();
