@@ -2,14 +2,13 @@ import { api } from '../api/client';
 
 class EditService {
 
-  async CreatePost(title: string, url_anh: string, content: string, token: string, editor_id: number, editor_realname: string
+  async CreatePost(title: string, url_anh: string, content: string, token: string, editor_realname: string
   ) {
     try {
       const response = await api.post('/editor/create-post', {
         title: title,
         url_anh: url_anh,
         content: content,
-        editor_id: editor_id,
         editor_realname: editor_realname
       }, {
         headers: {

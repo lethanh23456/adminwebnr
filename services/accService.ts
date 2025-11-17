@@ -54,7 +54,23 @@ class accService {
       };
     }
 
+    async accountSellByPartner(token: string, partner_id: number) {
+      const response = await api.get('/partner/account-sell-by-partner', {
+        params: {
+          partner_id: partner_id
+        },
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
+      return {
+        success: true,
+        data: response.data.accounts
+      };
+    }
+
+ 
 }
 
 export default new accService();

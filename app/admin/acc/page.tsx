@@ -9,6 +9,7 @@ interface Account {
   price: number;
   status: string;
   partner_id: number;
+  buyer_id?: number;
   createdAt: string;
 }
 
@@ -20,12 +21,17 @@ interface FormData {
   price: number;
 }
 
-export default function AccountManagement() {
+export default function AccountManagementComplete() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [token, setToken] = useState<string>("");
+  const [currentPartnerId, setCurrentPartnerId] = useState<number | null>(null);
+  const [searchPartnerId, setSearchPartnerId] = useState<string>("");
+  const [viewingPartnerId, setViewingPartnerId] = useState<number | null>(null);
+  
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
 
   const [formData, setFormData] = useState<FormData>({
@@ -47,6 +53,7 @@ export default function AccountManagement() {
         const userData = JSON.parse(stored);
         return {
           token: userData.access_token || "",
+          partner_id: userData.partner_id || null,
         };
       } catch (error) {
         console.error('Error parsing user data:', error);
@@ -57,8 +64,53 @@ export default function AccountManagement() {
     const userData = getUserData();
     if (userData?.token) {
       setToken(userData.token);
+      setCurrentPartnerId(userData.partner_id);
+      // Auto load my accounts
+      if (userData.partner_id) {
+        loadAccountsByPartner(userData.token, userData.partner_id);
+      }
     }
   }, []);
+
+  const loadAccountsByPartner = async (userToken: string, partnerId: number) => {
+    setSearching(true);
+    try {
+      const result = await accService.accountSellByPartner(userToken, partnerId);
+      if (result.success) {
+        setAccounts(result.data || []);
+        setViewingPartnerId(partnerId);
+      }
+    } catch (error: any) {
+      console.error('Error fetching accounts:', error);
+      showMessage(error.response?.data?.message || "Có lỗi xảy ra khi tải account!", "error");
+      setAccounts([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!searchPartnerId || searchPartnerId.trim() === "") {
+      showMessage("Vui lòng nhập Partner ID!", "error");
+      return;
+    }
+
+    if (!token) {
+      showMessage("Vui lòng đăng nhập!", "error");
+      return;
+    }
+
+    await loadAccountsByPartner(token, parseInt(searchPartnerId));
+  };
+
+  const handleResetSearch = () => {
+    setSearchPartnerId("");
+    if (currentPartnerId && token) {
+      loadAccountsByPartner(token, currentPartnerId);
+    }
+  };
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage({ text, type });
@@ -95,7 +147,10 @@ export default function AccountManagement() {
       );
       
       if (result.success) {
-        setAccounts([...accounts, result.data]);
+        // Reload accounts
+        if (currentPartnerId) {
+          await loadAccountsByPartner(token, currentPartnerId);
+        }
         showMessage(result.message, "success");
         resetForm();
       }
@@ -124,9 +179,10 @@ export default function AccountManagement() {
       );
       
       if (result.success) {
-        setAccounts(accounts.map(acc => 
-          acc.id === editingAccount.id ? result.data : acc
-        ));
+        // Reload accounts
+        if (viewingPartnerId) {
+          await loadAccountsByPartner(token, viewingPartnerId);
+        }
         showMessage(result.message, "success");
         resetForm();
       }
@@ -152,7 +208,10 @@ export default function AccountManagement() {
       const result = await accService.deleteAccountSell(token, id);
       
       if (result.success) {
-        setAccounts(accounts.filter(acc => acc.id !== id));
+        // Reload accounts
+        if (viewingPartnerId) {
+          await loadAccountsByPartner(token, viewingPartnerId);
+        }
         showMessage(result.message, "success");
       }
     } catch (error: any) {
@@ -182,17 +241,66 @@ export default function AccountManagement() {
     }));
   };
 
+  const isViewingMyAccounts = viewingPartnerId === currentPartnerId;
+
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Quản Lý Bán Account</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-        >
-          {showForm ? "Đóng Form" : "+ Thêm Account"}
-        </button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Quản Lý Account</h1>
+          <p className="text-gray-600 mt-1">
+            {isViewingMyAccounts ? "Account của tôi" : `Đang xem Partner #${viewingPartnerId}`}
+          </p>
+        </div>
+        {isViewingMyAccounts && (
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+          >
+            {showForm ? "Đóng Form" : "+ Thêm Account"}
+          </button>
+        )}
+      </div>
+
+      {/* Search Box */}
+      <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">🔍 Tìm kiếm theo Partner ID</h3>
+        <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Partner ID
+            </label>
+            <input
+              type="number"
+              value={searchPartnerId}
+              onChange={(e) => setSearchPartnerId(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Nhập Partner ID (VD: 1, 2, 3...)"
+              disabled={searching}
+            />
+          </div>
+          
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={searching}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg transition-colors disabled:bg-gray-400 font-semibold"
+            >
+              {searching ? "Đang tìm..." : "🔍 Tìm kiếm"}
+            </button>
+            
+            {!isViewingMyAccounts && (
+              <button
+                type="button"
+                onClick={handleResetSearch}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors font-semibold"
+              >
+                🔄 Về Account của tôi
+              </button>
+            )}
+          </div>
+        </form>
       </div>
 
       {/* Message */}
@@ -204,7 +312,30 @@ export default function AccountManagement() {
         </div>
       )}
 
-      {/* Form */}
+      {/* Info Banner */}
+      {viewingPartnerId && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">
+                {isViewingMyAccounts ? "Tổng số account của bạn" : `Account của Partner #${viewingPartnerId}`}
+              </p>
+              <p className="text-2xl font-bold text-gray-800 mt-1">
+                {accounts.length} Account
+                <span className="text-base ml-3 text-gray-600">
+                  (ACTIVE: {accounts.filter(a => a.status === 'ACTIVE').length} | 
+                   SOLD: {accounts.filter(a => a.status === 'SOLD').length})
+                </span>
+              </p>
+            </div>
+            <div className="text-5xl">
+              {accounts.length > 0 ? '✅' : '📭'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Form - Show when creating/editing */}
       {showForm && (
         <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">
@@ -318,9 +449,20 @@ export default function AccountManagement() {
           <h2 className="text-xl font-semibold text-gray-800">Danh Sách Account</h2>
         </div>
         
-        {accounts.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            Chưa có account nào. Hãy thêm account đầu tiên!
+        {searching ? (
+          <div className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải...</p>
+          </div>
+        ) : accounts.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+            <div className="text-6xl mb-4">📭</div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Không có account nào</h3>
+            <p className="text-gray-500">
+              {isViewingMyAccounts 
+                ? "Hãy thêm account đầu tiên!" 
+                : `Partner #${viewingPartnerId} chưa có account nào`}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -342,6 +484,11 @@ export default function AccountManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Trạng Thái
                   </th>
+                  {!isViewingMyAccounts && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Buyer ID
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ngày Tạo
                   </th>
@@ -366,8 +513,10 @@ export default function AccountManagement() {
                         }}
                       />
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {account.description}
+                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
+                      <div className="line-clamp-2">
+                        {account.description || <span className="text-gray-400 italic">Không có mô tả</span>}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                       {account.price.toLocaleString('vi-VN')} ₫
@@ -376,27 +525,40 @@ export default function AccountManagement() {
                       <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         account.status === 'ACTIVE' 
                           ? 'bg-green-100 text-green-800' 
+                          : account.status === 'SOLD'
+                          ? 'bg-red-100 text-red-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {account.status}
+                        {account.status === 'SOLD' ? 'ĐÃ BÁN' : account.status}
                       </span>
                     </td>
+                    {!isViewingMyAccounts && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {account.buyer_id ? `#${account.buyer_id}` : '-'}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(account.createdAt).toLocaleDateString('vi-VN')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleEdit(account)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAccount(account.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Xóa
-                      </button>
+                      {account.status === 'SOLD' ? (
+                        <span className="text-gray-400 italic">Đã bán</span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleEdit(account)}
+                            className="text-blue-600 hover:text-blue-900 mr-4"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAccount(account.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Xóa
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -405,6 +567,15 @@ export default function AccountManagement() {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+      `}</style>
     </div>
   );
 }
