@@ -1,6 +1,8 @@
 import { api } from '../api/client';
 
 class AdminService {
+
+  // admin/cashier
   // Lấy danh sách tất cả các yêu cầu rút tiền
   async allWithdrawl(token: string) {
     try {
@@ -186,6 +188,188 @@ class AdminService {
     }
   }
 
+
+
+  //admin
+  async changeRole(username: string , newRole: string, token: string) {
+    try {
+      const response = await api.patch('/admin/change-role',{
+        username: username,
+        newRole: newRole
+      },{
+        headers: {
+            'Authorization': `Bearer ${token}`
+          }
+      });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Thay đổi vai trò thành công!'
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async banUser(username: string , token: string) {
+    try {
+      const response = await api.patch('/admin/ban-user',{
+        username: username
+      },{
+        headers: {
+            'Authorization': `Bearer ${token}`
+          }
+      });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Ban user thành công!'
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async unbanUser(username: string , token: string) {
+    try {
+      const response = await api.patch('/admin/unban-user',{
+        username: username
+      },{
+        headers: {
+            'Authorization': `Bearer ${token}`
+          }
+      });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Unban user thành công!'
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async updateMoney(userId: string , amount: number, token: string) {
+    try {
+      const response = await api.patch('/admin/money',{
+        userId: userId,
+        amount: amount
+      },{
+        headers: {
+            'Authorization': `Bearer ${token}`
+          }
+      });
+      return {  
+        success: true,
+        data: response.data,
+        message: 'Cập nhật số dư thành công!'
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async updateStatus (userId: string , status: string, token: string) {
+    try {
+      const response = await api.patch('/admin/status',{
+        userId: userId,
+        status: status
+      },{
+        headers: {
+            'Authorization': `Bearer ${token}`
+          }
+      });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Cập nhật trạng thái ví thành công!'
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async accountSellByPartner(partnerId: number, token: string) {
+    try {
+      const response = await api.get('/admin/account-sell-by-partner', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        params: {
+          partner_id: partnerId
+        }
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Lấy danh sách acc theo partner thành công!'
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async allAccountBuyer(partnerId: number, token: string){
+    try {
+      const response = await api.get('/admin/all-account-buyer', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        params: {
+          partner_id: partnerId
+        }
+      });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Lấy tất cả acc của người mua thành công!'
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async updateBalace(id: number, amount: number, token: string , type: string) {
+    try {
+      const response = await api.patch('/admin/update-balance',{
+        id: id,
+        amount: amount,
+        type: type
+      },{
+        headers: {
+            'Authorization': `Bearer ${token}`
+          }
+      });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Cập nhật thành công!'
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async createDeTu (userId: number, sucManh: number, token: string ) {
+    try {
+      const response = await api.post('/admin/create-de-tu',{
+        userId: userId,
+        sucManh: sucManh
+      },{
+        headers: {
+            'Authorization': `Bearer ${token}`
+          }
+      });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Tạo đệ tử thành công!'
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
 
 }
 

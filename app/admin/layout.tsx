@@ -5,11 +5,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 const sidebarItems = [
-  { href: "/admin", label: "Dashboard", icon: "📊" },
-  { href: "/admin/post", label: "Quản lý Tin tức", icon: "🎮" },
-  { href: "/admin/acc", label: "Quản lý tài khoản", icon: "👥" },
-  { href: "/admin/stats", label: "Thống kê", icon: "📈" },
-  { href: "/admin/settings", label: "Cài đặt", icon: "⚙️" },
+  { href: "/admin", label: "Quản lý rút tiền" },
+  { href: "/admin/post", label: "Quản lý tin tức"},
+  { href: "/admin/acc", label: "Quản lý tài khoản" },
+  { href: "/admin/stats", label: "Thống kê"},
+  { href: "/admin/PlayerManagement", label: "Quản lý người chơi" },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -78,32 +78,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     }
                   `}
                 >
-                  <span className="text-2xl">{item.icon}</span>
                   <span>{item.label}</span>
                 </Link>
               ))}
             </nav>
 
-         
-            <div className="my-6 border-t border-gray-200"></div>
 
-         
-            <div className="space-y-2">
-              <Link
-                href="/admin/help"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-yellow-50 hover:text-red-600 font-semibold transition"
-              >
-                <span className="text-2xl">❓</span>
-                <span>Trợ giúp</span>
-              </Link>
-              <Link
-                href="/"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-yellow-50 hover:text-red-600 font-semibold transition"
-              >
-                <span className="text-2xl">🏠</span>
-                <span>Về trang chủ</span>
-              </Link>
-            </div>
+
           </div>
         </aside>
 

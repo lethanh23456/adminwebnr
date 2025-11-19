@@ -65,7 +65,6 @@ export default function AccountManagementComplete() {
     if (userData?.token) {
       setToken(userData.token);
       setCurrentPartnerId(userData.partner_id);
-      // Auto load my accounts
       if (userData.partner_id) {
         loadAccountsByPartner(userData.token, userData.partner_id);
       }

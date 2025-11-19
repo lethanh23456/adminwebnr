@@ -44,7 +44,6 @@ export default function Admin() {
 
     const result = await AdminService.allWithdrawl(accessToken);
     
-    console.log("📝 Result:", result); // Debug để xem structure
     
     if (result.success) {
       if (result.data.withdraws) {
@@ -85,7 +84,7 @@ export default function Admin() {
       return;
     }
 
-    const result = await AdminService.approveWithdraw(id, authId, accessToken);  // ← Truyền authId
+    const result = await AdminService.approveWithdraw(id, authId, accessToken); 
     
     if (result.success) {
       alert(result.message);
@@ -101,7 +100,7 @@ export default function Admin() {
   }
 };
 
-const handleReject = async (id: number) => {  // ← Bỏ tham số finance_id
+const handleReject = async (id: number) => {  
   if (!confirm("Bạn có chắc chắn muốn từ chối yêu cầu này?")) return;
 
   try {
@@ -114,14 +113,14 @@ const handleReject = async (id: number) => {  // ← Bỏ tham số finance_id
     
     const userData = JSON.parse(stored);
     const accessToken = userData.access_token;
-    const authId = userData.auth_id;  // ← LẤY auth_id từ localStorage
+    const authId = userData.auth_id;  
     
     if (!accessToken || !authId) {
       alert("Không tìm thấy thông tin đăng nhập");
       return;
     }
 
-    const result = await AdminService.rejectWithdraw(id, authId, accessToken);  // ← Truyền authId
+    const result = await AdminService.rejectWithdraw(id, authId, accessToken);  
     
     if (result.success) {
       alert(result.message);

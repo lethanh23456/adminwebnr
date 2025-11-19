@@ -25,12 +25,9 @@ function Otp() {
     setLoading(true);
 
     try {
-      // Lấy sessionId từ localStorage
       const stored = localStorage.getItem("currentUser");
       const sessionId = stored ? JSON.parse(stored).sessionId : null;
       
-      console.log("🔍 Retrieved sessionId:", sessionId);
-
       if (!sessionId) {
         alert("Không tìm thấy sessionId. Vui lòng đăng nhập lại!");
         router.push("/login");
@@ -41,7 +38,6 @@ function Otp() {
       const result = await AdminService.verifyOtp(formData.otp, sessionId);
 
       if (result.success) {
-        console.log("✅ Verify OTP success:", result.data);
 
        
         const dataOld = JSON.parse(localStorage.getItem("currentUser") || "{}");
