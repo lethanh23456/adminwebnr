@@ -9,6 +9,7 @@ const sidebarItems = [
   { href: "/admin/post", label: "Quản lý tin tức"},
   { href: "/admin/acc", label: "Quản lý tài khoản" },
   { href: "/admin/stats", label: "Thống kê"},
+  { href: "/admin/PlayerManagementAdmin", label: "Quản lý người chơi(admin)" },
   { href: "/admin/PlayerManagement", label: "Quản lý người chơi" },
 ]
 
