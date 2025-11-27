@@ -1,25 +1,44 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-const sidebarItems = [
-  { href: "/admin", label: "Quản lý rút tiền" },
-  { href: "/admin/post", label: "Quản lý tin tức"},
-  { href: "/admin/acc", label: "Quản lý tài khoản" },
-  { href: "/admin/stats", label: "Thống kê"},
-  { href: "/admin/PlayerManagementAdmin", label: "Quản lý người chơi(admin)" },
-  { href: "/admin/PlayerManagement", label: "Quản lý người chơi" },
+const allSidebarItems = [
+  { href: "/admin", label: "Quản lý rút tiền", icon: "💰", roles: ["ADMIN", "CASHIER"] },
+  { href: "/admin/post", label: "Quản lý tin tức", icon: "📰", roles: ["ADMIN", "EDITOR"] },
+  { href: "/admin/acc", label: "Quản lý tài khoản", icon: "👤", roles: ["ADMIN", "PARTNER"] },
+  { href: "/admin/stats", label: "Thống kê", icon: "📊", roles: ["ADMIN", "FINANCE"] },
+  { href: "/admin/PlayerManagementAdmin", label: "Quản lý người chơi (Admin)", icon: "👑", roles: ["ADMIN"] },
+  { href: "/admin/PlayerManagement", label: "Quản lý người chơi", icon: "👥", roles: ["ADMIN", "PLAYER MANAGER"] },
+  { href: "/", label: "Đăng xuất", icon: "🚪", roles: ["ADMIN", "PARTNER", "PLAYER MANAGER", "CASHIER", "FINANCE", "EDITOR"] },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [userRole, setUserRole] = useState<string>("")
+  const [sidebarItems, setSidebarItems] = useState(allSidebarItems)
+
+  useEffect(() => {
+    const store = localStorage.getItem("currentUser")
+    const user = store ? JSON.parse(store) : null
+    const role = user?.role || ""
+    
+    setUserRole(role)
+    
+    // Filter sidebar items based on user role
+    if (role) {
+      const filteredItems = allSidebarItems.filter(item => 
+        item.roles.includes(role)
+      )
+      setSidebarItems(filteredItems)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-[#FFC000] shadow-lg sticky top-0 z-50">
+      <header className="bg-[#4C4C4C] shadow-lg sticky top-0 z-50">
         <div className="flex items-center justify-between h-20 px-4">
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -34,20 +53,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </svg>
           </button>
 
-    
           <div className="flex items-center gap-3">
             <span className="text-2xl">🎮</span>
             <h1 className="text-xl font-bold text-white">Admin Panel</h1>
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="text-white hover:bg-yellow-400 p-2 rounded-lg transition">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </button>
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center font-bold text-red-600">
-              A
+            <div className="px-4 py-2 bg-blue-600 rounded-lg">
+              <span className="text-sm font-semibold text-white">
+                {userRole || "Guest"}
+              </span>
             </div>
           </div>
         </div>
@@ -71,25 +86,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   href={item.href}
                   onClick={() => setIsSidebarOpen(false)}
                   className={`
-                    flex items-center gap-3 px-4 py-3 rounded-lg
-                    font-semibold transition-all duration-200
+                    group
+                    flex items-center gap-3 px-4 py-3
+                    font-medium text-sm
+                    rounded-lg
+                    transition-all duration-200
+                    border-2
                     ${pathname === item.href
-                      ? "bg-[#FFC000] text-red-600 shadow-md"
-                      : "text-gray-700 hover:bg-yellow-50 hover:text-red-600"
+                      ? "bg-white border-blue-500 text-blue-600 shadow-sm"
+                      : "bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:text-blue-600 hover:shadow-sm"
                     }
                   `}
                 >
+                  <span className="text-xl">{item.icon}</span>
                   <span>{item.label}</span>
                 </Link>
               ))}
             </nav>
-
-
-
           </div>
         </aside>
 
-     
+        {/* Overlay for mobile */}
         {isSidebarOpen && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
@@ -97,7 +114,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ></div>
         )}
 
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-6 lg:p-8 bg-[#F0F2F5]">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

@@ -1,217 +1,477 @@
-// app/admin/stats/page.tsx
-"use client"
+"use client";
+import { useEffect, useState } from "react";
+import { 
+  Card, 
+  Table, 
+  Tag, 
+  Statistic, 
+  Row, 
+  Col, 
+  Space,
+  Typography,
+  Select,
+  Input,
+  message
+} from "antd";
+import { 
+  ArrowUpOutlined, 
+  ArrowDownOutlined, 
+  WalletOutlined,
+  SearchOutlined 
+} from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+import dayjs from "dayjs";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title as ChartTitle,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar, Pie } from 'react-chartjs-2';
+import statsService from '../../../services/statsService'; 
 
-import { useState } from "react"
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  ChartTitle,
+  Tooltip,
+  Legend
+);
 
-export default function StatsPage() {
-  const [timeRange, setTimeRange] = useState("7days")
+const { Title } = Typography;
 
-  const revenueData = [
-    { day: "Thứ 2", revenue: 4500000, orders: 45 },
-    { day: "Thứ 3", revenue: 6200000, orders: 62 },
-    { day: "Thứ 4", revenue: 5800000, orders: 58 },
-    { day: "Thứ 5", revenue: 7200000, orders: 72 },
-    { day: "Thứ 6", revenue: 8900000, orders: 89 },
-    { day: "Thứ 7", revenue: 12000000, orders: 120 },
-    { day: "CN", revenue: 14500000, orders: 145 },
-  ]
+interface CashFlow {
+  total_nap: number;
+  total_rut: number;
+  balance: number;
+}
 
-  const totalRevenue = revenueData.reduce((sum, item) => sum + item.revenue, 0)
-  const totalOrders = revenueData.reduce((sum, item) => sum + item.orders, 0)
-  const avgRevenue = Math.round(totalRevenue / revenueData.length)
-  const maxRevenue = Math.max(...revenueData.map(d => d.revenue))
+interface AllRecord {
+  id: number;
+  user_id: number;
+  type: string;
+  amount: number;
+  create_at: string;
+}
+
+const Dashboard = () => {
+  const [data, setData] = useState<CashFlow | null>(null);
+  const [allRecords, setAllRecords] = useState<AllRecord[]>([]);
+  const [filteredRecords, setFilteredRecords] = useState<AllRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [searchText, setSearchText] = useState("");
+
+  
+  useEffect(() => {
+    const store = localStorage.getItem("currentUser");
+    const user = store ? JSON.parse(store) : null;
+    const token = user?.access_token || "";
+    
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [cashFlowResult, recordsResult] = await Promise.all([
+          statsService.SystemCashFlow(token),
+          statsService.AllRecord(token)
+        ]);
+
+        if (cashFlowResult.success) {
+          setData(cashFlowResult.data);
+        } else {
+          message.error(cashFlowResult.error);
+        }
+
+        if (recordsResult.success) {
+          const records = Array.isArray(recordsResult.data) ? recordsResult.data : [];
+          console.log(recordsResult);
+          setAllRecords(records);
+          setFilteredRecords(records);
+        } else {
+          message.error(recordsResult.error);
+          setAllRecords([]);
+          setFilteredRecords([]);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        message.error("Có lỗi xảy ra khi tải dữ liệu!");
+      
+        setAllRecords([]);
+        setFilteredRecords([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  
+  useEffect(() => {
+    let filtered = [...allRecords];
+
+    if (typeFilter !== "all") {
+      filtered = filtered.filter((record) => record.type === typeFilter);
+    }
+
+    if (searchText) {
+      filtered = filtered.filter((record) =>
+        record.user_id.toString().includes(searchText)
+      );
+    }
+
+    setFilteredRecords(filtered);
+  }, [typeFilter, searchText, allRecords]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', { 
-      style: 'currency', 
-      currency: 'VND' 
-    }).format(amount)
-  }
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount);
+  };
 
-  const formatShortCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `${(amount / 1000000).toFixed(1)}M`
-    }
-    return `${(amount / 1000).toFixed(0)}K`
-  }
+  const columns: ColumnsType<AllRecord> = [
+    {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      width: 80,
+      align: "center",
+    },
+    {
+      title: "User ID",
+      dataIndex: "user_id",
+      key: "user_id",
+      width: 100,
+      align: "center",
+    },
+    {
+      title: "Loại giao dịch",
+      dataIndex: "type",
+      key: "type",
+      width: 150,
+      align: "center",
+      render: (type: string) => (
+        <Tag color={type === "NAP" ? "green" : "red"} icon={type === "NAP" ? <ArrowUpOutlined /> : <ArrowDownOutlined />}>
+          {type === "NAP" ? "Nạp tiền" : "Rút tiền"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Số tiền",
+      dataIndex: "amount",
+      key: "amount",
+      width: 200,
+      align: "right",
+      render: (amount: number, record) => (
+        <span style={{ 
+          color: record.type === "NAP" ? "#52c41a" : "#ff4d4f",
+          fontWeight: "600"
+        }}>
+          {record.type === "NAP" ? "+" : "-"}{formatCurrency(amount)}
+        </span>
+      ),
+    },
+    {
+      title: "Thời gian",
+      dataIndex: "create_at",
+      key: "create_at",
+      width: 200,
+      render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm:ss"),
+      sorter: (a, b) => dayjs(a.create_at).unix() - dayjs(b.create_at).unix(),
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">💰 Thống Kê Doanh Thu</h1>
-          <p className="text-gray-600 mt-2">Theo dõi doanh thu theo ngày</p>
-        </div>
-        
-        <select 
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-[#FFC000] font-medium"
-        >
-          <option value="7days">7 ngày qua</option>
-          <option value="30days">30 ngày qua</option>
-          <option value="90days">90 ngày qua</option>
-          <option value="year">Năm nay</option>
-        </select>
-      </div>
+    <div style={{ padding: "24px", background: "#f0f2f5", minHeight: "100vh" }}>
+      <Title level={2} style={{ marginBottom: "24px" }}>
+        <WalletOutlined /> Quản lý doanh thu
+      </Title>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm font-medium">Tổng doanh thu</p>
-              <p className="text-2xl font-bold mt-2">{formatShortCurrency(totalRevenue)}</p>
-              <p className="text-green-100 text-sm mt-2">↑ 15% so với tuần trước</p>
-            </div>
-            <div className="text-5xl opacity-20">💵</div>
-          </div>
-        </div>
+      <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
+        <Col xs={24} sm={8}>
+          <Card variant="borderless" loading={loading}>
+            <Statistic
+              title="Số dư hiện tại"
+              value={data?.balance || 0}
+              precision={0}
+              styles={{ 
+                content: { 
+                  color: (data?.balance || 0) >= 0 ? "#3f8600" : "#cf1322",
+                  fontSize: "28px"
+                }
+              }}
+              prefix={<WalletOutlined />}
+              suffix="₫"
+              formatter={(value) => formatCurrency(Number(value)).replace("₫", "")}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card variant="borderless" loading={loading}>
+            <Statistic
+              title="Tổng nạp"
+              value={data?.total_nap || 0}
+              precision={0}
+              styles={{ 
+                content: { 
+                  color: "#3f8600", 
+                  fontSize: "28px" 
+                }
+              }}
+              prefix={<ArrowUpOutlined />}
+              suffix="₫"
+              formatter={(value) => formatCurrency(Number(value)).replace("₫", "")}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card variant="borderless" loading={loading}>
+            <Statistic
+              title="Tổng rút"
+              value={data?.total_rut || 0}
+              precision={0}
+              styles={{ 
+                content: { 
+                  color: "#cf1322", 
+                  fontSize: "28px" 
+                }
+              }}
+              prefix={<ArrowDownOutlined />}
+              suffix="₫"
+              formatter={(value) => formatCurrency(Number(value)).replace("₫", "")}
+            />
+          </Card>
+        </Col>
+      </Row>
 
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm font-medium">Trung bình/ngày</p>
-              <p className="text-2xl font-bold mt-2">{formatShortCurrency(avgRevenue)}</p>
-              <p className="text-blue-100 text-sm mt-2">↑ 8% so với tuần trước</p>
-            </div>
-            <div className="text-5xl opacity-20">📊</div>
-          </div>
-        </div>
+      <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
+        <Col xs={24} lg={14}>
+          <Card 
+            variant="borderless"
+            title={<Title level={4} style={{ margin: 0 }}>Biểu đồ cột thống kê</Title>}
+            loading={loading}
+          >
+            <Bar
+              data={{
+                labels: ['Tổng nạp', 'Tổng rút'],
+                datasets: [
+                  {
+                    label: 'Số tiền (VNĐ)',
+                    data: [data?.total_nap || 0, data?.total_rut || 0],
+                    backgroundColor: [
+                      'rgba(82, 196, 26, 0.8)',
+                      'rgba(255, 77, 79, 0.8)',
+                    ],
+                    borderColor: [
+                      'rgba(82, 196, 26, 1)',
+                      'rgba(255, 77, 79, 1)',
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 8,
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                plugins: {
+                  legend: {
+                    display: false,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => {
+                        const value = context.parsed.y || 0;
+                        return `${context.label}: ${formatCurrency(value)}`;
+                      },
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                      size: 14,
+                    },
+                    bodyFont: {
+                      size: 13,
+                    },
+                  },
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    ticks: {
+                      callback: (value) => {
+                        return new Intl.NumberFormat('vi-VN', {
+                          notation: 'compact',
+                          compactDisplay: 'short',
+                        }).format(Number(value)) + 'đ';
+                      },
+                    },
+                    grid: {
+                      color: 'rgba(0, 0, 0, 0.05)',
+                    },
+                  },
+                  x: {
+                    grid: {
+                      display: false,
+                    },
+                  },
+                },
+              }}
+              height={100}
+            />
+          </Card>
+        </Col>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm font-medium">Tổng đơn hàng</p>
-              <p className="text-3xl font-bold mt-2">{totalOrders}</p>
-              <p className="text-purple-100 text-sm mt-2">↑ 12% so với tuần trước</p>
-            </div>
-            <div className="text-5xl opacity-20">🛒</div>
-          </div>
-        </div>
+        <Col xs={24} lg={10}>
+          <Card 
+            variant="borderless"
+            title={<Title level={4} style={{ margin: 0 }}>Tỷ lệ giao dịch</Title>}
+            loading={loading}
+          >
+            <Pie
+              data={{
+                labels: ['Tổng nạp', 'Tổng rút'],
+                datasets: [
+                  {
+                    data: [data?.total_nap || 0, data?.total_rut || 0],
+                    backgroundColor: [
+                      'rgba(82, 196, 26, 0.8)',
+                      'rgba(255, 77, 79, 0.8)',
+                    ],
+                    borderColor: [
+                      'rgba(82, 196, 26, 1)',
+                      'rgba(255, 77, 79, 1)',
+                    ],
+                    borderWidth: 2,
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 1.5,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      padding: 15,
+                      font: {
+                        size: 13,
+                      },
+                      usePointStyle: true,
+                      pointStyle: 'circle',
+                    },
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => {
+                        const value = context.parsed || 0;
+                        const total = (data?.total_nap || 0) + (data?.total_rut || 0);
+                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                        return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+                      },
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                      size: 14,
+                    },
+                    bodyFont: {
+                      size: 13,
+                    },
+                  },
+                },
+              }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
-        <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-yellow-100 text-sm font-medium">Cao nhất</p>
-              <p className="text-2xl font-bold mt-2">{formatShortCurrency(maxRevenue)}</p>
-              <p className="text-yellow-100 text-sm mt-2">Chủ nhật</p>
-            </div>
-            <div className="text-5xl opacity-20">🏆</div>
-          </div>
-        </div>
-      </div>
+      <Card 
+        variant="borderless"
+        style={{ marginBottom: "16px" }}
+        styles={{ body: { padding: "16px" } }}
+      >
+        <Space wrap size="middle">
+          <Input
+            placeholder="Tìm theo User ID"
+            prefix={<SearchOutlined />}
+            style={{ width: 200 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
+          />
+          <Select
+            style={{ width: 200 }}
+            placeholder="Loại giao dịch"
+            value={typeFilter}
+            onChange={setTypeFilter}
+            options={[
+              { label: "Tất cả", value: "all" },
+              { label: "Nạp tiền", value: "NAP" },
+              { label: "Rút tiền", value: "RUT" },
+            ]}
+          />
+        </Space>
+      </Card>
 
-      {/* Revenue Chart */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-6">Biểu đồ doanh thu 7 ngày</h2>
-        
-        <div className="space-y-4">
-          {revenueData.map((item, index) => (
-            <div key={index} className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-semibold text-gray-700 w-20">{item.day}</span>
-                <span className="font-bold text-gray-900">{formatCurrency(item.revenue)}</span>
-              </div>
-              
-              <div className="relative h-10 bg-gray-100 rounded-lg overflow-hidden">
-                <div 
-                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-400 to-green-600 rounded-lg transition-all duration-700 flex items-center justify-end pr-3"
-                  style={{ width: `${(item.revenue / maxRevenue) * 100}%` }}
-                >
-                  <span className="text-white text-xs font-bold">
-                    {item.orders} đơn
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <Card variant="borderless">
+        <Table
+          columns={columns}
+          dataSource={filteredRecords}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `Tổng ${total} giao dịch`,
+            pageSizeOptions: ["10", "20", "50", "100"],
+          }}
+          scroll={{ x: 800 }}
+          summary={(pageData) => {
+            let totalNap = 0;
+            let totalRut = 0;
 
-      {/* Detailed Table */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800">Chi tiết theo ngày</h2>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ngày
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Doanh thu
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Số đơn
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Trung bình/đơn
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tỷ lệ
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {revenueData.map((item, index) => {
-                const avgPerOrder = Math.round(item.revenue / item.orders)
-                const percentage = ((item.revenue / totalRevenue) * 100).toFixed(1)
-                
-                return (
-                  <tr key={index} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className="text-2xl mr-3">📅</span>
-                        <span className="text-sm font-medium text-gray-900">{item.day}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-bold text-green-600">
-                        {formatCurrency(item.revenue)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{item.orders}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{formatCurrency(avgPerOrder)}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900 mr-2">{percentage}%</span>
-                        <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-green-500"
-                            style={{ width: `${percentage}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            pageData.forEach(({ type, amount }) => {
+              if (type === "NAP") {
+                totalNap += amount;
+              } else {
+                totalRut += amount;
+              }
+            });
 
-      {/* Summary Card */}
-      <div className="bg-gradient-to-r from-[#FFC000] to-yellow-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">💡 Thông tin</h3>
-            <p className="text-yellow-50">
-              Doanh thu tăng mạnh vào cuối tuần. Chủ nhật có doanh thu cao nhất với <strong>{formatCurrency(maxRevenue)}</strong>.
-            </p>
-          </div>
-          <div className="text-6xl opacity-30">📈</div>
-        </div>
-      </div>
+            return (
+              <Table.Summary fixed>
+                <Table.Summary.Row style={{ background: "#fafafa" }}>
+                  <Table.Summary.Cell index={0} colSpan={3} align="right">
+                    <strong>Tổng trang này:</strong>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={1} align="right">
+                    <strong style={{ color: "#52c41a" }}>
+                      +{formatCurrency(totalNap)}
+                    </strong>
+                    {" / "}
+                    <strong style={{ color: "#ff4d4f" }}>
+                      -{formatCurrency(totalRut)}
+                    </strong>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={2} />
+                </Table.Summary.Row>
+              </Table.Summary>
+            );
+          }}
+        />
+      </Card>
     </div>
-  )
-}
+  );
+};
+
+export default Dashboard;

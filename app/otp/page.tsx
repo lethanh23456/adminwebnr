@@ -20,6 +20,22 @@ function Otp() {
     }));
   };
 
+
+  const redirectByRole = (role: string) => {
+    const roleRoutes: Record<string, string> = {
+      "ADMIN": "/admin",
+      "PARTNER": "/admin/acc",
+      "PLAYER MANAGER": "/admin/PlayerManagement",
+      "CASHIER": "/admin",
+      "FINANCE": "/admin/stats",
+      "EDITOR": "/admin/post",
+    };
+
+    const redirectPath = roleRoutes[role] || "/admin";
+    console.log(`Redirecting ${role} to ${redirectPath}`);
+    router.push(redirectPath);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -34,33 +50,36 @@ function Otp() {
         return;
       }
 
-
       const result = await AdminService.verifyOtp(formData.otp, sessionId);
 
       if (result.success) {
-
-       
+        // Lấy data cũ từ localStorage
         const dataOld = JSON.parse(localStorage.getItem("currentUser") || "{}");
         
-       
+        // Merge data mới với data cũ
         const userData = {
           ...dataOld,
           ...result.data,
         };
 
-     
+        // Lưu vào localStorage
         localStorage.setItem('currentUser', JSON.stringify(userData));
         console.log("Saved user data:", userData);
 
         alert("Xác thực OTP thành công!");
         
-      
-        router.push("/admin");
+        const userRole = userData.role || dataOld.role;
+        if (userRole) {
+          redirectByRole(userRole);
+        } else {
+          console.error("Không tìm thấy role!");
+          router.push("/admin");
+        }
       } else {
         alert(result.error || "Xác thực OTP thất bại!");
       }
     } catch (error) {
-      console.error("❌ Lỗi khi verify OTP:", error);
+      console.error("Lỗi khi verify OTP:", error);
       alert("Đã xảy ra lỗi không mong đợi!");
     } finally {
       setLoading(false);

@@ -15,7 +15,7 @@ class playerManagementService {
     }
 
     async profile (token: string, id: number) {
-        const response = await api.get(`/player_manager/player-profile/${id}`, {
+        const response = await api.get(`/player_manager/profile/${id}`, {
             headers: {
             'Authorization': `Bearer ${token}`
         }
