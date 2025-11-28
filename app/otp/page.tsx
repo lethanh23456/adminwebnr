@@ -25,7 +25,7 @@ function Otp() {
     const roleRoutes: Record<string, string> = {
       "ADMIN": "/admin",
       "PARTNER": "/admin/acc",
-      "PLAYER MANAGER": "/admin/PlayerManagement",
+      "PLAYER_MANAGER": "/admin/PlayerManagement",
       "CASHIER": "/admin",
       "FINANCE": "/admin/stats",
       "EDITOR": "/admin/post",

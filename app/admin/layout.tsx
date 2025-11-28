@@ -10,8 +10,8 @@ const allSidebarItems = [
   { href: "/admin/acc", label: "Quản lý tài khoản", icon: "👤", roles: ["ADMIN", "PARTNER"] },
   { href: "/admin/stats", label: "Thống kê", icon: "📊", roles: ["ADMIN", "FINANCE"] },
   { href: "/admin/PlayerManagementAdmin", label: "Quản lý người chơi (Admin)", icon: "👑", roles: ["ADMIN"] },
-  { href: "/admin/PlayerManagement", label: "Quản lý người chơi", icon: "👥", roles: ["ADMIN", "PLAYER MANAGER"] },
-  { href: "/", label: "Đăng xuất", icon: "🚪", roles: ["ADMIN", "PARTNER", "PLAYER MANAGER", "CASHIER", "FINANCE", "EDITOR"] },
+  { href: "/admin/PlayerManagement", label: "Quản lý người chơi", icon: "👥", roles: ["ADMIN", "PLAYER_MANAGER"] },
+  { href: "/", label: "Đăng xuất", icon: "🚪", roles: ["ADMIN", "PARTNER", "PLAYER_MANAGER", "CASHIER", "FINANCE", "EDITOR"] },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
