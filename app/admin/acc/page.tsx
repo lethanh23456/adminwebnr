@@ -74,7 +74,6 @@ export default function AccountManagementComplete() {
       if (result.success) {
         const allAccounts = result.data || [];
         
-        // ✅ FIX: Lọc chỉ lấy accounts của partner_id đang tìm kiếm
         const filteredAccounts = allAccounts.filter(
           (account: Account) => account.partner_id === partnerId
         );
@@ -114,7 +113,6 @@ export default function AccountManagementComplete() {
       return;
     }
 
-    // ✅ RESET toàn bộ trước khi tìm kiếm mới
     setShowForm(false);
     setEditingAccount(null);
     setAccounts([]);
@@ -265,7 +263,7 @@ export default function AccountManagementComplete() {
       return;
     }
     
-    // ✅ RESET trước khi load
+  
     setAccounts([]);
     setShowForm(false);
     setEditingAccount(null);
@@ -278,7 +276,6 @@ export default function AccountManagementComplete() {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Quản Lý Account</h1>
@@ -356,8 +353,7 @@ export default function AccountManagementComplete() {
         </div>
       )}
 
-      {/* Form - Chỉ hiển thị khi đang xem accounts của mình */}
-      {showForm && isViewingMyAccounts && (
+      {showForm  && (
         <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">
             {editingAccount ? "Cập Nhật Account" : "Thêm Account Mới"}
