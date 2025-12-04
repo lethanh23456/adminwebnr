@@ -46,7 +46,6 @@ function Home() {
       const result = await AdminService.login(formData.username, formData.password);
       
       if (result.success) {
-        console.log("✅ Login success:", result.data);
 
         // Lưu sessionId và username vào localStorage
         const sessionData = {
@@ -55,7 +54,7 @@ function Home() {
         };
 
         localStorage.setItem('currentUser', JSON.stringify(sessionData));
-        console.log("💾 Saved session data:", sessionData);
+        console.log("Saved session data:", sessionData);
 
         // Ghi nhớ username nếu checkbox được chọn
         if (rememberMe) {
@@ -72,7 +71,7 @@ function Home() {
         alert(result.error || 'Đăng nhập thất bại!');
       }
     } catch (error) {
-      console.error('❌ Unexpected error:', error);
+      console.error('Unexpected error:', error);
       alert('Đã xảy ra lỗi không mong đợi!');
     } finally {
       setLoading(false);
