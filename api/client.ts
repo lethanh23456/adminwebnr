@@ -4,17 +4,20 @@ const API_BASE_URL = 'https://chrysocarpous-adonis-multilobular.ngrok-free.dev';
 
 export const api = {
   get: async <T = any>(
-    url: string, 
-    config: AxiosRequestConfig = {}
-  ): Promise<AxiosResponse<T>> => {
-    return await axios.get<T>(`${API_BASE_URL}${url}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      ...config
-    });
-  },
+  url: string, 
+  config: AxiosRequestConfig = {}
+): Promise<AxiosResponse<T>> => {
+  return await axios.get<T>(`${API_BASE_URL}${url}`, {
+    ...config,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      "ngrok-skip-browser-warning": "true",
+      ...(config.headers || {}), 
+    },
+  });
+},
+
 
  
   post: async <T = any>(

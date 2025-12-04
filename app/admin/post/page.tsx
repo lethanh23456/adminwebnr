@@ -74,15 +74,18 @@ export default function PostPage() {
     }
   };
 
-  // Wrap fetchPosts in useCallback to stabilize its reference
+  // Fetch posts function with useCallback
   const fetchPosts = useCallback(async () => {
     if (!token) return;
     
     setIsLoading(true);
     try {
       const result: ApiResponse<Post[]> = await EditService.AllPosts(token);
+      console.log("Fetch posts result:", result);
+      debugger
 
       if (result.success && result.data) {
+        console.log("Fetched posts:", result.data);
         setPosts(result.data);
       } else {
         toast.error(result.error || "Không thể tải danh sách bài viết");
@@ -93,7 +96,7 @@ export default function PostPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token]); // fetchPosts depends only on token
+  }, [token]);
 
   // Initialize client-side and get token
   useEffect(() => {
@@ -107,12 +110,12 @@ export default function PostPage() {
     }
   }, []);
 
-  // Fetch posts when token and isClient are ready
+  // Fetch posts when token is available
   useEffect(() => {
     if (token && isClient) {
       fetchPosts();
     }
-  }, [token, isClient, fetchPosts]); // Now fetchPosts is stable due to useCallback
+  }, [token, isClient, fetchPosts]);
 
   // Handle editing post form data
   useEffect(() => {
