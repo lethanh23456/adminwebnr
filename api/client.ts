@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://chrysocarpous-adonis-multilobular.ngrok-free.dev';
 
 export const api = {
   get: async <T = any>(
