@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from 'react-hot-toast';
 import EditService from "@/services/editService";
 
@@ -74,7 +74,28 @@ export default function PostPage() {
     }
   };
 
-  // Initialize client-side only
+  // Wrap fetchPosts in useCallback to stabilize its reference
+  const fetchPosts = useCallback(async () => {
+    if (!token) return;
+    
+    setIsLoading(true);
+    try {
+      const result: ApiResponse<Post[]> = await EditService.AllPosts(token);
+
+      if (result.success && result.data) {
+        setPosts(result.data);
+      } else {
+        toast.error(result.error || "Không thể tải danh sách bài viết");
+      }
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      toast.error("Đã xảy ra lỗi khi tải danh sách bài viết");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]); // fetchPosts depends only on token
+
+  // Initialize client-side and get token
   useEffect(() => {
     setIsClient(true);
     const userToken = getUserToken();
@@ -86,12 +107,14 @@ export default function PostPage() {
     }
   }, []);
 
+  // Fetch posts when token and isClient are ready
   useEffect(() => {
     if (token && isClient) {
       fetchPosts();
     }
-  }, [token, isClient]);
+  }, [token, isClient, fetchPosts]); // Now fetchPosts is stable due to useCallback
 
+  // Handle editing post form data
   useEffect(() => {
     if (editingPost) {
       setFormData({
@@ -110,26 +133,6 @@ export default function PostPage() {
     }
     setErrors({});
   }, [editingPost]);
-
-  const fetchPosts = async () => {
-    if (!token) return;
-    
-    setIsLoading(true);
-    try {
-      const result: ApiResponse<Post[]> = await EditService.AllPosts(token);
-
-      if (result.success && result.data) {
-        setPosts(result.data);
-      } else {
-        toast.error(result.error || "Không thể tải danh sách bài viết");
-      }
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-      toast.error("Đã xảy ra lỗi khi tải danh sách bài viết");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const validateForm = (): boolean => {
     const newErrors: Partial<PostFormData> = {};
