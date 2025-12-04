@@ -91,7 +91,7 @@ function Home() {
         <form className="p-8 space-y-6" onSubmit={handleSubmit}>
           {/* Username */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-black-700">
               Tên đăng nhập
             </label>
             <div className="relative">
@@ -105,7 +105,7 @@ function Home() {
                 value={formData.username}
                 onChange={handleInputChange}
                 disabled={loading}
-                className={`w-full pl-12 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                className={`w-full text-black-700 pl-12 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
                   errors.username 
                     ? 'border-red-500 focus:ring-red-500' 
                     : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
@@ -119,7 +119,7 @@ function Home() {
 
           {/* Password */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-black-700">
               Mật khẩu
             </label>
             <div className="relative">
@@ -133,7 +133,7 @@ function Home() {
                 value={formData.password}
                 onChange={handleInputChange}
                 disabled={loading}
-                className={`w-full pl-12 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                className={`w-full text-black-700 pl-12 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
                   errors.password 
                     ? 'border-red-500 focus:ring-red-500' 
                     : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
