@@ -36,6 +36,8 @@ export default function PostPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
   
   // Form data
   const [formData, setFormData] = useState<PostFormData>({
@@ -58,6 +60,8 @@ export default function PostPage() {
   });
 
   const getUserToken = () => {
+    if (typeof window === 'undefined') return null;
+    
     const stored = localStorage.getItem('currentUser');
     if (!stored) return null;
     
@@ -70,15 +74,23 @@ export default function PostPage() {
     }
   };
 
-  const token = getUserToken();
+  // Initialize client-side only
+  useEffect(() => {
+    setIsClient(true);
+    const userToken = getUserToken();
+    setToken(userToken);
+    
+    if (!userToken) {
+      toast.error("Không tìm thấy thông tin đăng nhập");
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!token) {
-      toast.error("Không tìm thấy thông tin đăng nhập");
-      return;
+    if (token && isClient) {
+      fetchPosts();
     }
-    fetchPosts();
-  }, []);
+  }, [token, isClient]);
 
   useEffect(() => {
     if (editingPost) {
@@ -249,6 +261,18 @@ export default function PostPage() {
   const handleCancelDelete = () => {
     setDeleteModal({ isOpen: false, postId: null, postTitle: "" });
   };
+
+  // Show loading state during hydration
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!token) {
     return (
