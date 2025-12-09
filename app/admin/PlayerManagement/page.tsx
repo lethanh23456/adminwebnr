@@ -375,43 +375,7 @@ export default function PlayerManagement() {
         )}
 
     
-      {/* User Items */}
-      {userItems.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-700 mb-4">
-            🎒 Vật Phẩm ({userItems.length})
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    STT
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thông Tin
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {userItems.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {index + 1}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      <pre className="whitespace-pre-wrap text-xs bg-gray-50 p-3 rounded">
-                        {JSON.stringify(item, null, 2)}
-                      </pre>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
+      
       {/* Pay Info */}
       {payInfo && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
