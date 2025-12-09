@@ -249,7 +249,7 @@ export default function PlayerManagement() {
       // Xử lý đúng cho số 64-bit: (high << 32) + (low & 0xFFFFFFFF)
       return (high * Math.pow(2, 32)) + (low >>> 0); // >>> 0 converts to unsigned
     }
-    return 0;
+    return value;
   };
 
   return (
