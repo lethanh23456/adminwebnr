@@ -233,13 +233,7 @@ export default function PlayerManagement() {
     }
   };
 
-  // const formatValue = (value: any) => {
-  //   if (!value) return 0;
-  //   if (typeof value === 'object' && value !== null && 'low' in value) {
-  //     return value.low;
-  //   }
-  //   return value;
-  // };
+ 
 
    const formatValue = (value: any): number => {
     if (typeof value === 'number') return value;
