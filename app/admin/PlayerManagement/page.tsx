@@ -233,12 +233,23 @@ export default function PlayerManagement() {
     }
   };
 
-  const formatValue = (value: any) => {
-    if (!value) return 0;
-    if (typeof value === 'object' && value !== null && 'low' in value) {
-      return value.low;
+  // const formatValue = (value: any) => {
+  //   if (!value) return 0;
+  //   if (typeof value === 'object' && value !== null && 'low' in value) {
+  //     return value.low;
+  //   }
+  //   return value;
+  // };
+
+   const formatValue = (value: any): number => {
+    if (typeof value === 'number') return value;
+    if (value && typeof value === 'object' && 'low' in value) {
+      const low = value.low || 0;
+      const high = value.high || 0;
+      // Xử lý đúng cho số 64-bit: (high << 32) + (low & 0xFFFFFFFF)
+      return (high * Math.pow(2, 32)) + (low >>> 0); // >>> 0 converts to unsigned
     }
-    return value;
+    return 0;
   };
 
   return (
